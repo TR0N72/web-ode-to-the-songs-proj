@@ -4,77 +4,46 @@ import { Music, Search, History } from "lucide-react";
 import FeatureCard from "@/components/FeatureCard";
 import MessageCard from "@/components/MessageCard";
 import { useEffect, useState } from "react";
-
-// Sample messages for demonstration
-const sampleMessages = [
-  {
-    id: "1",
-    recipient: "Ani",
-    message: "Always.",
-    song: {
-      title: "Always",
-      artist: "Bon Jovi",
-      albumCover: "https://i.scdn.co/image/ab67616d0000b273b7c05417113f613a3c76c226"
-    }
-  },
-  {
-    id: "2",
-    recipient: "Lily",
-    message: "Always.",
-    song: {
-      title: "Always With Me",
-      artist: "Joe Hisaishi",
-      albumCover: "https://i.scdn.co/image/ab67616d0000b2731f8f9c2a5a8e1e9adc6dc8c9"
-    }
-  },
-  {
-    id: "3",
-    recipient: "Ani",
-    message: "Always.",
-    song: {
-      title: "Always Forever",
-      artist: "Cults",
-      albumCover: "https://i.scdn.co/image/ab67616d0000b2736c2cb0d7cc4644ff7b19e8c1"
-    }
-  },
-  {
-    id: "4",
-    recipient: "Padme",
-    message: "Always.",
-    song: {
-      title: "Always Be My Baby",
-      artist: "Mariah Carey",
-      albumCover: "https://i.scdn.co/image/ab67616d0000b273ef0d4234e1a645740f77d59c"
-    }
-  },
-  {
-    id: "5",
-    recipient: "Padme",
-    message: "Always.",
-    song: {
-      title: "Always",
-      artist: "Bon Jovi",
-      albumCover: "https://i.scdn.co/image/ab67616d0000b273b7c05417113f613a3c76c226"
-    }
-  },
-  {
-    id: "6",
-    recipient: "Padme",
-    message: "Always.",
-    song: {
-      title: "Always With Me",
-      artist: "Joe Hisaishi",
-      albumCover: "https://i.scdn.co/image/ab67616d0000b2731f8f9c2a5a8e1e9adc6dc8c9"
-    }
-  }
-];
+import { fetchMessages } from "@/services/apiService";
+import { Message } from "@/types";
 
 const HomePage = () => {
-  const [messages, setMessages] = useState<typeof sampleMessages>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // In a real implementation, this would fetch from an API
-    setMessages(sampleMessages);
+    const getRecentMessages = async () => {
+      setLoading(true);
+      try {
+        const fetchedMessages = await fetchMessages();
+        setMessages(fetchedMessages.slice(0, 6));
+        setError(null);
+      } catch (err) {
+        console.error("Failed to fetch messages:", err);
+        setError("Failed to load recent messages");
+        
+        const sampleMessages = [
+          {
+            id: "1",
+            recipient: "Ani",
+            message: "Always.",
+            date: new Date().toISOString(),
+            song: {
+              id: "1",
+              title: "Always",
+              artist: "Bon Jovi",
+              albumCover: "https://i.scdn.co/image/ab67616d0000b273b7c05417113f613a3c76c226"
+            }
+          }
+        ];
+        setMessages(sampleMessages);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    getRecentMessages();
   }, []);
 
   return (
@@ -129,17 +98,30 @@ const HomePage = () => {
       <section className="py-16">
         <div className="container mx-auto px-4 md:px-0">
           <h2 className="text-2xl font-semibold text-center mb-12">Recent Messages</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {messages.map((message) => (
-              <MessageCard
-                key={message.id}
-                id={message.id}
-                recipient={message.recipient}
-                message={message.message}
-                song={message.song}
-              />
-            ))}
-          </div>
+          
+          {error && (
+            <div className="text-center py-4 mb-6 bg-red-50 text-red-600 rounded-lg">
+              {error}
+            </div>
+          )}
+          
+          {loading ? (
+            <div className="text-center py-8">
+              <p>Loading recent messages...</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {messages.map((message) => (
+                <MessageCard
+                  key={message.id}
+                  id={message.id}
+                  recipient={message.recipient}
+                  message={message.message}
+                  song={message.song}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </section>
     </div>

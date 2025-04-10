@@ -1,4 +1,3 @@
-
 import { Outlet, Link, useLocation } from "react-router-dom";
 import { Music, MessageSquare, History, Heart } from "lucide-react";
 

@@ -2,34 +2,44 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import MessageCard from "@/components/MessageCard";
-
-interface Message {
-  id: string;
-  recipient: string;
-  message: string;
-  song: {
-    title: string;
-    artist: string;
-    albumCover?: string;
-  };
-  date: string;
-}
+import { fetchMessages } from "@/services/apiService";
+import { Message } from "@/types";
 
 const HistoryPage = () => {
   const [history, setHistory] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // In a real app, this would be fetched from an API with authentication
-    const storedHistory = JSON.parse(localStorage.getItem("message-history") || "[]");
-    setHistory(storedHistory);
-    setLoading(false);
+    const getMessages = async () => {
+      setLoading(true);
+      try {
+        const messages = await fetchMessages();
+        setHistory(messages);
+        setError(null);
+      } catch (err) {
+        console.error("Failed to fetch messages:", err);
+        setError("Failed to load message history. Please try again later.");
+        const storedHistory = JSON.parse(localStorage.getItem("message-history") || "[]");
+        setHistory(storedHistory);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    getMessages();
   }, []);
 
   return (
     <div className="py-12">
       <div className="container mx-auto px-4 md:px-0">
         <h1 className="text-2xl font-semibold mb-8 text-center">Your Message History</h1>
+
+        {error && (
+          <div className="text-center py-4 mb-6 bg-red-50 text-red-600 rounded-lg">
+            {error}
+          </div>
+        )}
 
         {loading ? (
           <div className="text-center py-8">

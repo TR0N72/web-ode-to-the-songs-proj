@@ -1,7 +1,7 @@
-
 import { Link } from "react-router-dom";
-import { Music } from "lucide-react";
+import { Music, Play, Pause } from "lucide-react";
 import { playSong } from "@/services/spotifyService";
+import { useState } from "react";
 
 interface MessageCardProps {
   id: string;
@@ -12,14 +12,20 @@ interface MessageCardProps {
     artist: string;
     albumCover?: string;
     uri?: string;
+    previewUrl?: string;
   };
 }
 
 const MessageCard = ({ id, recipient, message, song }: MessageCardProps) => {
+  const [isPlaying, setIsPlaying] = useState(false);
+
   const handlePlaySong = (e: React.MouseEvent) => {
     e.preventDefault();
-    if (song.uri) {
-      playSong(song.uri);
+    
+    setIsPlaying(!isPlaying);
+    
+    if (song.previewUrl) {
+      playSong(song.previewUrl);
     }
   };
 
@@ -46,10 +52,10 @@ const MessageCard = ({ id, recipient, message, song }: MessageCardProps) => {
         <button 
           onClick={handlePlaySong}
           className="spotify-button"
-          aria-label="Play on Spotify"
-          disabled={!song.uri}
+          aria-label={isPlaying ? "Pause song" : "Play song"}
+          disabled={!song.previewUrl}
         >
-          <Music size={16} />
+          {isPlaying ? <Pause size={16} /> : <Play size={16} />}
         </button>
       </div>
       <div className="mt-4 text-right">

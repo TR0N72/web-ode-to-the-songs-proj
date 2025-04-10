@@ -5,6 +5,7 @@ export interface Song {
   artist: string;
   albumCover?: string;
   uri?: string;  // Spotify URI
+  previewUrl?: string; // URL for 30 second preview
 }
 
 export interface Message {
@@ -21,4 +22,5 @@ export interface SpotifySearchResult {
   artist: string;
   albumCover?: string;
   uri: string;
+  previewUrl?: string; // URL for 30 second preview
 }

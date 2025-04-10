@@ -9,7 +9,6 @@ const SpotifyCallback = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // We're now using Client Credentials flow, so we can just get a token and proceed
     const getToken = async () => {
       const success = await getClientCredentialsToken();
       

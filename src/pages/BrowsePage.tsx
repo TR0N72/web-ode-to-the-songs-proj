@@ -1,90 +1,57 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Info } from "lucide-react";
 import SearchBox from "@/components/SearchBox";
 import MessageCard from "@/components/MessageCard";
-
-// Sample messages - in a real app, these would come from an API
-const allMessages = [
-  {
-    id: "1",
-    recipient: "Ani",
-    message: "Always.",
-    song: {
-      title: "Always",
-      artist: "Bon Jovi",
-      albumCover: "https://i.scdn.co/image/ab67616d0000b273b7c05417113f613a3c76c226"
-    }
-  },
-  {
-    id: "2",
-    recipient: "Ani",
-    message: "Always.",
-    song: {
-      title: "Always With Me",
-      artist: "Joe Hisaishi",
-      albumCover: "https://i.scdn.co/image/ab67616d0000b2731f8f9c2a5a8e1e9adc6dc8c9"
-    }
-  },
-  {
-    id: "3",
-    recipient: "Ani",
-    message: "Always.",
-    song: {
-      title: "Always Forever",
-      artist: "Cults",
-      albumCover: "https://i.scdn.co/image/ab67616d0000b2736c2cb0d7cc4644ff7b19e8c1"
-    }
-  },
-  {
-    id: "4",
-    recipient: "Ani",
-    message: "Always.",
-    song: {
-      title: "Always Be My Baby",
-      artist: "Mariah Carey",
-      albumCover: "https://i.scdn.co/image/ab67616d0000b273ef0d4234e1a645740f77d59c"
-    }
-  },
-  {
-    id: "5",
-    recipient: "Ani",
-    message: "Always.",
-    song: {
-      title: "Always",
-      artist: "Bon Jovi",
-      albumCover: "https://i.scdn.co/image/ab67616d0000b273b7c05417113f613a3c76c226"
-    }
-  },
-  {
-    id: "6",
-    recipient: "Ani",
-    message: "Always.",
-    song: {
-      title: "Always With Me",
-      artist: "Joe Hisaishi",
-      albumCover: "https://i.scdn.co/image/ab67616d0000b2731f8f9c2a5a8e1e9adc6dc8c9"
-    }
-  },
-];
+import { fetchMessages, searchMessages } from "@/services/apiService";
+import { Message } from "@/types";
 
 const BrowsePage = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [messages, setMessages] = useState(allMessages);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [allMessages, setAllMessages] = useState<Message[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSearch = (query: string) => {
+  useEffect(() => {
+    const loadMessages = async () => {
+      setIsSearching(true);
+      try {
+        const fetchedMessages = await fetchMessages();
+        setAllMessages(fetchedMessages);
+        setMessages(fetchedMessages);
+        setError(null);
+      } catch (err) {
+        console.error("Failed to fetch messages:", err);
+        setError("Failed to load messages. Please try again later.");
+      } finally {
+        setIsSearching(false);
+      }
+    };
+
+    loadMessages();
+  }, []);
+
+  const handleSearch = async (query: string) => {
     setSearchQuery(query);
     setIsSearching(true);
     
-    // In a real app, this would be an API call
-    setTimeout(() => {
-      const filtered = allMessages.filter(
-        message => message.recipient.toLowerCase().includes(query.toLowerCase())
-      );
-      setMessages(filtered);
+    try {
+      if (!query.trim()) {
+        // If query is empty, show all messages
+        setMessages(allMessages);
+      } else {
+        // Search for messages matching the query
+        const results = await searchMessages(query);
+        setMessages(results);
+      }
+      setError(null);
+    } catch (err) {
+      console.error("Search error:", err);
+      setError("Search failed. Please try again.");
+    } finally {
       setIsSearching(false);
-    }, 500);
+    }
   };
 
   return (
@@ -99,7 +66,7 @@ const BrowsePage = () => {
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-grow">
               <SearchBox 
-                onSearch={handleSearch} 
+                onSearch={setSearchQuery} 
                 placeholder="Enter recipient's name"
               />
             </div>
@@ -111,6 +78,12 @@ const BrowsePage = () => {
             </button>
           </div>
         </div>
+
+        {error && (
+          <div className="text-center py-4 mb-6 bg-red-50 text-red-600 rounded-lg">
+            {error}
+          </div>
+        )}
 
         {/* Results */}
         {isSearching ? (

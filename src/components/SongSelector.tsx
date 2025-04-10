@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Search, Music } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
@@ -27,7 +26,6 @@ const SongSelector = ({ onSelect }: SongSelectorProps) => {
     setIsSearching(true);
     
     try {
-      // Search Spotify for tracks (token handling is done inside searchTracks)
       const tracks = await searchTracks(query);
       setResults(tracks);
       

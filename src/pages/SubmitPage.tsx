@@ -4,13 +4,8 @@ import { Info } from "lucide-react";
 import SongSelector from "@/components/SongSelector";
 import { toast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-
-interface Song {
-  id: string;
-  title: string;
-  artist: string;
-  albumCover?: string;
-}
+import { createMessage } from "@/services/apiService";
+import { Song } from "@/types";
 
 const SubmitPage = () => {
   const [recipient, setRecipient] = useState("");
@@ -19,10 +14,9 @@ const SubmitPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validation
     if (!recipient.trim()) {
       toast({
         title: "Recipient is required",
@@ -49,30 +43,35 @@ const SubmitPage = () => {
     
     setIsSubmitting(true);
     
-    // In a real implementation, this would be an API call
-    setTimeout(() => {
-      // Simulate successful submission
+    try {
+      const newMessage = await createMessage(recipient, message, selectedSong);
+      
+      if (newMessage) {
+        toast({
+          title: "Message submitted successfully!",
+        });
+        
+        const history = JSON.parse(localStorage.getItem("message-history") || "[]");
+        history.push({
+          ...newMessage,
+          date: new Date().toISOString()
+        });
+        localStorage.setItem("message-history", JSON.stringify(history));
+        
+        navigate("/history");
+      } else {
+        throw new Error("Failed to create message");
+      }
+    } catch (error) {
+      console.error("Submit error:", error);
       toast({
-        title: "Message submitted successfully!",
+        title: "Failed to submit message",
+        description: "Please try again later",
+        variant: "destructive",
       });
-      
-      // Store in local storage for history
-      const history = JSON.parse(localStorage.getItem("message-history") || "[]");
-      const newMessage = {
-        id: Date.now().toString(),
-        recipient,
-        message,
-        song: selectedSong,
-        date: new Date().toISOString(),
-      };
-      history.push(newMessage);
-      localStorage.setItem("message-history", JSON.stringify(history));
-      
+    } finally {
       setIsSubmitting(false);
-      
-      // Redirect to message page (in a real app, would redirect to the new message)
-      navigate("/history");
-    }, 1000);
+    }
   };
 
   return (

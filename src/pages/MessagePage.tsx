@@ -1,43 +1,53 @@
 
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Music } from "lucide-react";
+import { Music, Play, Pause } from "lucide-react";
+import { playSong } from "@/services/spotifyService";
 import NotFound from "./NotFound";
-
-// Sample messages for demonstration - in a real app, these would come from an API
-const sampleMessages = [
-  {
-    id: "1",
-    recipient: "Ode Team",
-    message: "bismillah UTS 100 amin ya ges :)))",
-    song: {
-      title: "Always",
-      artist: "Bon Jovi",
-      albumCover: "https://i.scdn.co/image/ab67616d0000b273b7c05417113f613a3c76c226"
-    },
-    date: "2025-03-29"
-  }
-];
+import { fetchMessageById } from "@/services/apiService";
+import { Message } from "@/types";
 
 const MessagePage = () => {
   const { id } = useParams<{ id: string }>();
-  const [message, setMessage] = useState<(typeof sampleMessages)[0] | null>(null);
+  const [message, setMessage] = useState<Message | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
 
   useEffect(() => {
-    // In a real app, this would fetch from an API
-    const fetchMessage = () => {
+    const getMessage = async () => {
+      if (!id) return;
+      
       setLoading(true);
-      setTimeout(() => {
-        // Find the message by ID (in a real app, this would be an API call)
-        const foundMessage = sampleMessages.find(m => m.id === id);
-        setMessage(foundMessage || null);
+      try {
+        const fetchedMessage = await fetchMessageById(id);
+        setMessage(fetchedMessage);
+        setError(null);
+      } catch (err) {
+        console.error("Failed to fetch message:", err);
+        setError("Failed to load message. Please try again later.");
+        
+        // Check local storage as fallback
+        const storedHistory = JSON.parse(localStorage.getItem("message-history") || "[]");
+        const localMessage = storedHistory.find((m: Message) => m.id === id);
+        if (localMessage) {
+          setMessage(localMessage);
+          setError(null);
+        }
+      } finally {
         setLoading(false);
-      }, 500);
+      }
     };
 
-    fetchMessage();
+    getMessage();
   }, [id]);
+
+  const handlePlaySong = () => {
+    if (!message?.song.previewUrl) return;
+    
+    setIsPlaying(!isPlaying);
+    playSong(message.song.previewUrl);
+  };
 
   if (loading) {
     return (
@@ -54,6 +64,12 @@ const MessagePage = () => {
   return (
     <div className="py-12">
       <div className="container mx-auto px-4 md:px-0 max-w-3xl">
+        {error && (
+          <div className="text-center py-4 mb-6 bg-red-50 text-red-600 rounded-lg">
+            {error}
+          </div>
+        )}
+        
         <div className="text-center mb-8">
           <h1 className="text-2xl font-medium mb-2">
             Hello, <span className="handwriting text-3xl">{message.recipient}</span>
@@ -79,9 +95,16 @@ const MessagePage = () => {
             <h2 className="text-2xl font-semibold mb-1">SONG</h2>
             <p className="mb-1">{message.song.title}</p>
             <p className="text-gray-200">{message.song.artist}</p>
-            <button className="mt-4 bg-black text-white px-4 py-2 rounded-full flex items-center mx-auto md:mx-0">
-              <Music size={16} className="mr-2" />
-              Listen on Spotify
+            <button 
+              onClick={handlePlaySong}
+              className="mt-4 bg-black text-white px-4 py-2 rounded-full flex items-center mx-auto md:mx-0"
+              disabled={!message.song.previewUrl}
+            >
+              {isPlaying ? (
+                <><Pause size={16} className="mr-2" /> Pause Preview</>
+              ) : (
+                <><Play size={16} className="mr-2" /> Play Preview</>
+              )}
             </button>
           </div>
         </div>

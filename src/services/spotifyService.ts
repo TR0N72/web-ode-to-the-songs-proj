@@ -1,12 +1,11 @@
-
-// Spotify token management and API calls
 import { toast } from "@/hooks/use-toast";
 import { SpotifySearchResult } from "@/types";
 
-// Constants
 const SPOTIFY_CLIENT_ID = import.meta.env.VITE_SPOTIFY_CLIENT_ID;
 const SPOTIFY_CLIENT_SECRET = import.meta.env.VITE_SPOTIFY_CLIENT_SECRET;
 const TOKEN_KEY = "spotify_token";
+
+let currentAudio: HTMLAudioElement | null = null;
 
 export interface SpotifyToken {
   access_token: string;
@@ -41,7 +40,6 @@ export const getToken = (): SpotifyToken | null => {
  * Save the token to localStorage
  */
 export const saveToken = (token: SpotifyToken): void => {
-  // Add expiration time
   token.expires_at = Date.now() + token.expires_in * 1000;
   localStorage.setItem(TOKEN_KEY, JSON.stringify(token));
 };
@@ -58,13 +56,10 @@ export const clearToken = (): void => {
  */
 export const getClientCredentialsToken = async (): Promise<boolean> => {
   try {
-    // This would normally be done on a server to protect your client secret
-    // For demo purposes only - in production move this to a backend service
     const response = await fetch('https://accounts.spotify.com/api/token', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
-        // Base64 encode the client ID and secret
         'Authorization': 'Basic ' + btoa(`${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`)
       },
       body: 'grant_type=client_credentials'
@@ -95,7 +90,6 @@ export const getClientCredentialsToken = async (): Promise<boolean> => {
 export const searchTracks = async (query: string): Promise<SpotifySearchResult[]> => {
   if (!query) return [];
   
-  // Check if we have a valid token, if not, get a new one
   if (!isAuthenticated()) {
     const success = await getClientCredentialsToken();
     if (!success) {
@@ -125,9 +119,7 @@ export const searchTracks = async (query: string): Promise<SpotifySearchResult[]
     
     if (!response.ok) {
       if (response.status === 401) {
-        // Token expired
         clearToken();
-        // Try again with a new token
         const success = await getClientCredentialsToken();
         if (success) {
           return searchTracks(query); // Retry the search
@@ -139,13 +131,13 @@ export const searchTracks = async (query: string): Promise<SpotifySearchResult[]
     
     const data = await response.json();
     
-    // Transform the response into our app's format
     return data.tracks.items.map((track: any) => ({
       id: track.id,
       title: track.name,
       artist: track.artists.map((a: any) => a.name).join(', '),
       albumCover: track.album.images[0]?.url,
-      uri: track.uri
+      uri: track.uri,
+      previewUrl: track.preview_url // Add preview URL for 30-second clips
     }));
   } catch (error) {
     console.error('Error searching Spotify:', error);
@@ -159,14 +151,40 @@ export const searchTracks = async (query: string): Promise<SpotifySearchResult[]
 };
 
 /**
- * Open the song in Spotify
+ * Play song in the browser
  */
-export const playSong = (uri: string): void => {
-  window.open(`https://open.spotify.com/track/${uri.split(':')[2]}`, '_blank');
+export const playSong = (previewUrl?: string): void => {
+  if (currentAudio) {
+    currentAudio.pause();
+    currentAudio = null;
+  }
+  
+  if (!previewUrl) {
+    toast({
+      title: "Preview not available",
+      description: "This song doesn't have a preview available",
+      variant: "destructive"
+    });
+    return;
+  }
+  
+  const audio = new Audio(previewUrl);
+  audio.play().catch(error => {
+    console.error('Error playing audio:', error);
+    toast({
+      title: "Playback error",
+      description: "Could not play the song preview",
+      variant: "destructive"
+    });
+  });
+  
+  currentAudio = audio;
+  
+  audio.addEventListener('ended', () => {
+    currentAudio = null;
+  });
 };
 
-// Since we're not using auth flow anymore, this function is simplified
 export const handleCallback = (): boolean => {
   return true; // Always return true as we're not using this flow
 };
-
