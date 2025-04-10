@@ -23,7 +23,3 @@ CREATE TABLE messages (
   FOREIGN KEY (song_id) REFERENCES songs(id)
 );
 
-
-- Backend errors are logged to the console and returned as JSON responses
-- Frontend errors are displayed to the user with appropriate messages
-- Fallback mechanisms are in place to use localStorage if API calls fail
